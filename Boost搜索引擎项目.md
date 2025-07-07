@@ -177,11 +177,135 @@ int main()
 
 ![image-20250706204620512](C:\Users\Haope\AppData\Roaming\Typora\typora-user-images\image-20250706204620512.png)
 
+> 找到`<title>`和`</title>`的位置，两个位置之间的内容是title，注意[begin, end)
+
 **提取内容 —— 去标签**
 
 ![image-20250706204924506](C:\Users\Haope\AppData\Roaming\Typora\typora-user-images\image-20250706204924506.png)
 
+> 进行遍历时，遇到`>`说明遍历标签结束，开始遍历内容；遇到`<`说明遍历内容结束，开始遍历标签
+
+**构建URL**
+
+```cpp
+boost库的官方文档，和我们下载的文档，是有路径的对应关系
+    
+官方url：https://www.boost.org/doc/libs/1_78_0/doc/html/accumulators.html
+
+下载后url样例：1_78_0/doc/html/accumulators.html
+
+拷贝到项目的样例：data/input/accumulators.html
+    
+url_head = https://www.boost.org/doc/libs/1_78_0/doc/html
+url_tail = [data/input](删除) /accumulators.html --> url_tail = /accumulators.html
+ 
+url = url_head + url_tail; //形成了一个官网链接
+```
+
+将解析文件内容写入文件中
+
+```cpp
+类似：title\3content\3url\n title\3content\3url\n ……
+方便我们 getline(ifstream, line)，直接获取文档的全部内容：title\3content\3url
+```
+
 ## 6. 编写建立索引的模块`Index`
+
+`index.hpp`**基本结构**
+
+```cpp
+#pragma once
+
+#include<iostream>
+#include<string>
+#include<vector>
+#include<unordered_map>
+
+namespace ns_index
+{
+    struct DocInfo
+    {
+        std::string title;   //文档的标题
+        std::string content; //文档的内容
+        std::string url;     //官网url
+        uint64_t doc_id;          //文档的ID。uint64_t --> unsigned long int
+    };
+    struct InvertedElem
+    {
+        uint64_t doc_id;       //文档ID
+        std::string word; //关键字
+        int weight;       //权重
+    };
+
+    //倒排拉链
+    typedef std::vector<InvertedElem> InvertedList;
+    class index
+    {
+        private:
+            std::vector<DocInfo> forward_index; //正排索引的数据结构用数组，数组下标和文档ID一样，查找方便
+            std::unordered_map<std::string, InvertedList> inverted_index; //倒排索引是一个关键字和一组（个）InvertedElem对应[关键字和倒排拉链的映射关系]
+        public:
+            index()
+            {
+
+            }
+            ~index()
+            {
+
+            }
+        public:
+            //根据doc_id找到文档内容
+            DocInfo *GetForwardIndex(uint64_t doc_id)
+            {
+                return nullptr;
+            }
+            
+            //根据关键字string, 找到倒排拉链
+            InvertedElem *GetInvertedIndex(const std::string &word)
+            {
+                return nullptr;
+            }
+
+            //根据去标签，格式化之后的文档，构建正排和倒排索引
+            bool BuildIndex(const std::string &input) //把parse处理完毕的数据给我
+            {
+                return true;
+            }
+    };
+}
+```
+
+**建立正排的基本代码**
+
+```cpp
+DocInfo *BuildForwardIndex(const std::string &line)
+{
+    //已经获得一行内容，要进行切割字符串
+    //line -> title, content, url 这三个部分是由\3分隔开的
+    std::vector<std::string> results;
+    const std::string sep = "\3";
+    ns_util::StringUtil::CutString(line, &results, sep);
+    //切割之后的vector不是三份，说明切割失败
+    if (results.size() != 3)
+    {
+        return nullptr;
+    }
+
+    //将results内容放入doc中
+    DocInfo doc;
+    doc.title = results[0];
+    doc.content = results[1];
+    doc.url = results[2];
+    doc.doc_id = results.size(); //添加第一个文档，ID为0，田间第二个文档，ID为1......
+
+    //将doc放进forward_index中
+    forward_index.push_back(doc);
+    return &doc;
+}
+
+```
+
+
 
 ## 7. 编写搜索引擎模块`Searcher`
 
