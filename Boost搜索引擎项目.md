@@ -305,9 +305,151 @@ DocInfo *BuildForwardIndex(const std::string &line)
 
 ```
 
+**建立倒排**
 
+```cpp
+struct DocInfo
+{
+    std::string title;   //文档的标题
+    std::string content; //文档的内容
+    std::string url;     //官网url
+    uint64_t doc_id;          //文档的ID。uint64_t --> unsigned long int
+};   
+struct InvertedElem
+{
+    uint64_t doc_id;       //文档ID
+    std::string word; //关键字
+    int weight;       //权重
+};
+
+//倒排拉链
+typedef std::vector<InvertedElem> InvertedList;
+std::unordered_map<std::string, InvertedList> inverted_index; //倒排索引是一个关键字和一组（个）InvertedElem对应[关键字和倒排拉链的映射关系]
+
+
+//文档：
+title：吃葡萄
+content：吃葡萄不吐葡萄皮
+url：http://xxxxx
+doc_id：123
+    
+根据文档内容，形成一个或多个InvertedElem(倒排拉链)
+因为我们是对一个一个文档进行处理的，一个文档可能会有多个词，都对应到当前的文档ID（doc_id）
+    
+1. 需要对title && content进行分词 -- 使用jieba分词
+title：吃/葡萄/吃葡萄（title_word）
+content：吃/葡萄/不吐/葡萄皮（content_word）
+    
+词和文档的相关性（词频：在标题中出现的词，可以认为相关性更高一点，在内容中出现的词相关性就低一些）
+2. 词频统计
+struct word_cnt
+{
+	title_cnt;
+    content_cnt;
+};
+unordered_map<std::string, word_cnt> word_cnt; //保存关键字和在标题与内容中出现的次数
+
+for (auto& word : title_word)
+{	
+    word_cnt[word].title_cnt++; //吃（1）/葡萄（1）/吃葡萄（1）
+}
+
+for (auto& word : content_word)
+{
+    word_cnt[word].content_cnt++; //吃（1）/葡萄（1）/不吐（1）/葡萄皮（1）
+}
+
+知道了在文档中，标题和内容的每个词出现的次数
+3. 自定义相关性
+for (auto& word : word_cnt)
+{
+    //具体一个词和123文档的对应关系，当有不同的词，指向同一个文档的时候，首先显示谁？由相关性决定
+    struct InvertedElem elem;
+ 	elem.doc_id = 123;
+    elem.word = word.first;
+    elem.weight = 10 * word.title_cnt + word.content_cnt; //我们就简单写相关性了
+    
+    //一个倒排元素完成，放到倒排拉链中
+    inverted_index[word.first].push_back(elem);
+}
+
+
+//jieba的使用--cppjieba
+获取链接：git clone https://gitcode.net/mirrors/yanyiwu/cppjieba.git
+我们要自己执行：cp -rf deps/limonp include/cppjieba/
+    
+//如下是样例代码：
+#include "inc/cppjieba/Jieba.hpp"
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+const char* const DICT_PATH = "./dict/jieba.dict.utf8";
+const char* const HMM_PATH = "./dict/hmm_model.utf8";
+const char* const USER_DICT_PATH = "./dict/user.dict.utf8";
+const char* const IDF_PATH = "./dict/idf.utf8";
+const char* const STOP_WORD_PATH = "./dict/stop_words.utf8";
+int main(int argc, char** argv) {
+    cppjieba::Jieba jieba(DICT_PATH,
+                          HMM_PATH,
+                          USER_DICT_PATH,
+                          IDF_PATH,
+                          STOP_WORD_PATH);
+    vector<string> words;
+    string s;
+    s = "⼩明硕⼠毕业于中国科学院计算所，后在⽇本京都⼤学深造";
+    cout << s << endl;
+    cout << "[demo] CutForSearch" << endl;
+    jieba.CutForSearch(s, words);
+    cout << limonp::Join(words.begin(), words.end(), "/") << endl;
+    return EXIT_SUCCESS;
+}
+
+//编写倒排索引的代码
+//注意：建立倒排索引的时候，要忽略大小写
+```
 
 ## 7. 编写搜索引擎模块`Searcher`
+
+**基本代码结构**
+
+```cpp
+#pragma once
+
+#include"index.hpp"
+
+namespace ns_searcher
+{
+    class Searcher
+    {
+        private:
+            ns_index::Index *index; //供系统进行查找的索引
+        private:
+            Searcher();
+            ~Searcher();
+        public:
+            void InitSearcher(const std::string &input)
+            {
+                //1. 获取或者创建index对象
+                //2. 根据index对象创建索引
+
+            }
+
+            //query：搜索关键字
+            //json_string：返回给用户浏览器的搜索结果
+            void Search(const std::string &query, std::string *json_string)
+            {
+                //1. [分词]：对我们query进行分词
+                //2. [触发]：根据分词后的各个“词”，进行index查找
+                //3. [合并排序]：汇总查找结果，按照相关性（weight）降序排序
+                //4. [构建]：根据查找结果，构建json串 -- jsoncpp
+            }
+    };
+}
+```
+
+
 
 ## 8. 编写`http_server`模块
 
