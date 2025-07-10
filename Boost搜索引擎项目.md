@@ -449,8 +449,557 @@ namespace ns_searcher
 }
 ```
 
+**安装**`jsoncpp`
 
+```cpp
+[lzh@hcss-ecs-1552 ~]$ sudo yum install -y jsoncpp-devel
+[sudo] password for lzh: 
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+base                                                                
+centos-sclo-rh                                                  
+epel
+extras                                                                    
+updates                                                                   
+Package jsoncpp-devel-0.10.5-2.el7.x86_64 already installed and latest version
+Nothing to do //已经安装好了
+
+```
+
+**获取摘要**
+
+> 我们这里就取关键字位置前50个字节，关键字后100个字节
+
+```cpp
+//部分代码
+
+const int prev_step = 50;
+const int next_step = 100;
+
+//找到start和end的位置
+int start = 0;
+int end = html_content.size() - 1;
+//开始位置前50个字节存在，那么设置该位置，不存在就是0
+//最终位置后100个字节存在，那么设置该位置，不存在就是内容最后
+if (pos > start + prev_step) start = pos - prev_step;
+if (pos < end - next_step) end = pos + next_step;
+```
 
 ## 8. 编写`http_server`模块
 
+编写`http_server`
+
+> cpp-httplib库：https://gitee.com/welldonexing/cpp-httplib/tree/v0.7.15
+>
+> **注意**：
+>
+> 1. 使用cpp-httplib库时需要使用新版本的gcc，centos7默认gcc 4.8.5
+>
+> 2. 如果使用最新的cpp-httplib，gcc不是最新的话，运行时可能会报错，所以这个cpp-httplib链接是0.7.15版本的，可以使用
+> 3. 下载zip文件，在Linux上unzip，我们需要cpp-httplib下httplib.h文件
+
+```cpp
+搜索：scl gcc devsettool升级gcc
+//安装scl
+[whb@VM-0-3-centos boost_searcher]$ sudo yum install centos-release-scl sclutils-build
+//安装新版本gcc
+[whb@VM-0-3-centos boost_searcher]$ sudo yum install -y devtoolset-7-gcc
+devtoolset-7-gcc-c++
+[whb@VM-0-3-centos boost_searcher]$ ls /opt/rh/
+//启动： 细节，命令⾏启动只能在本会话有效
+[whb@VM-0-3-centos boost_searcher]$ scl enable devtoolset-7 bash
+```
+
+**基本使用测试**
+
+```cpp
+#include "cpp-httplib/httplib.h"
+#include "searcher.hpp"
+
+const std::string root_path = "./wwwroot";
+
+int main()
+{
+    //错误：在浏览器中输入ip地址和端口号，但是没有跳转 -- 在华为云的服务器上配置对应端口的安全组规则，这样就可以跳转成功了 
+    httplib::Server svr;
+    //ip:8081直接这样不会跳转，我们得自己设置一个页面
+    svr.set_base_dir(root_path.c_str());
+    svr.Get("/hi", [](const httplib::Request &req, httplib::Response &rsp){
+        rsp.set_content("hello world!", "text/plain; charset=utf-8");
+    });
+    svr.listen("0.0.0.0", 8081);
+    return 0;
+}
+```
+
+![image-20250710114700129](C:\Users\Haope\AppData\Roaming\Typora\typora-user-images\image-20250710114700129.png)
+
+输入`ip地址:端口号`，能够跳转成功
+
+> 在该目录下创建wwwroot目录，在wwwroot目录下创建inde.html文件
+
+**简易index.html**
+
+```html
+<!-- 注意格式 -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>for test</title>
+</head>
+<body>
+<h1>你好,世界</h1>
+<p>这是⼀个httplib的测试⽹⻚</p>
+</body>
+</html>
+```
+
+**测试** ：输入`ip地址:端口号`
+
+![image-20250710115108026](C:\Users\Haope\AppData\Roaming\Typora\typora-user-images\image-20250710115108026.png)
+
 ## 9. 编写前端模块
+
+> 1. html负责网页的骨架
+> 2. css是负责网页美化
+> 3. js是负责网页灵魂 —— 前后端交互
+> 4. 学习网站：https://www.w3school.com.cn/
+
+**编写**`html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>boost 搜索引擎</title>
+    
+    
+</head>
+<body>
+    <div class="container">
+        <div class="search">
+            <input type="text" value="输入关键字...">
+            <button>搜索一下</button>
+        </div>
+        <div class="result">
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+```
+
+![image-20250710165249826](C:\Users\Haope\AppData\Roaming\Typora\typora-user-images\image-20250710165249826.png)
+
+**编写**`css`**（整合了`html`）**
+
+```html
+/* 设置样式的本质：找到要设置的标签，设置它的属性 */
+/* 选择特定的标签，类选择器，标签选择器，复合选择器*/
+/* 设置标签的属性 如下*/
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>boost 搜索引擎</title>
+    <style>
+        /* 去掉网页中的所有的默认内外边距 */
+        * {
+            /* 设置外边距 */
+            margin: 0;
+            /* 设置内边距 */
+            padding: 0;    
+        }
+        将body中的内容和html的呈现相吻合
+        html,
+        body {
+            height: 100%;
+        }
+        /* 类选择器 */
+        .container {
+            /* 设置div的宽度 */
+            width: 800px;
+            /* 设置外边距达到居中对齐的目的 */
+            margin: 0px auto;
+            /* 设置外边距的上边距，保持元素和网页的上部距离 */
+            margin-top: 15px;
+        }
+        /* 复合选择器，选中container中的search */
+        .container .search {
+            /* 宽度与父标签一致 */
+            width: 100%;
+            /* 设置高度 */
+            height: 52px;
+        }
+        /* 先选中input标签，然后设置input的属性 */
+        .container .search input {
+            /* 设置float浮动 */
+            float: left;
+
+            width: 600px;
+            height: 50px;
+            /* 设置边框的属性：边框的宽度，样式，颜色 */
+            border: 1px solid black;
+            /* 去掉input输入框的有边框 */
+            border-right: none;
+            /* 设置内边距，默认文字不要和左侧边框紧挨着 */
+            padding-left: 10px;
+            /* 设置input内部字体的颜色和样式 */
+            color:dimgray ;
+            font-size: 15px;
+        }
+        /* 先选中button标签，然后设置button的属性 */
+        .container .search button {
+            /* 设置float浮动 */
+            float: left;
+
+            width: 150px;
+            height: 51px;
+            
+            /* 设置button的背景颜色 */
+            background-color: blue;
+            /* 设置button中字体的颜色 */
+            color: aliceblue;
+            /* 设置字体的大小 */
+            font-size: 15px;
+            /* 设置字体的样式 */
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+        }
+        .container .result {
+            width: 100%;
+        }
+        .container .result .item {
+            margin-top: 15px;
+        }
+        .container .result .item a {
+            /* 设置为块级元素，单独占一行 */
+            display: block;
+            /* 去掉标签中的下划线 */
+            text-decoration: none;
+            /* 设置标题的字体大小 */
+            font-size: 22px;
+            /* 设置标题字体颜色 */
+            color:darkblue ;
+        }
+        .container .result .item a:hover {
+            /* 设置鼠标在标题上的动态效果 */
+            text-decoration: underline; 
+            /* 鼠标点击字体时变色 */
+            color: brown;
+        }
+        .container .result .item p {
+            margin-top: 10px;
+            font-size: 18px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        .container .result .item i {
+            display: block;
+            /* 取消斜体风格 */
+            font-style: normal;
+            color: green;
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="search">
+            <input type="text" value="输入关键字...">
+            <button>搜索一下</button>
+        </div>
+        <div class="result">
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+            <div class="item">
+                <a href="#">这是标题</a>
+                <p>这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要这是摘要</p>
+                <i>https://cplusplus.com/</i>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+```
+
+**编写**`js`**(包含html，css)**
+
+```html
+如果直接使⽤原⽣的js成本会⽐较⾼（xmlhttprequest），我们推荐使⽤JQuery.
+JQuery CDN: https://www.jq22.com/cdn/
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+
+    <title>boost 搜索引擎</title>
+    <style>
+        /* 去掉网页中的所有的默认内外边距 */
+        * {
+            /* 设置外边距 */
+            margin: 0;
+            /* 设置内边距 */
+            padding: 0;    
+        }
+        将body中的内容和html的呈现相吻合
+        html,
+        body {
+            height: 100%;
+        }
+        /* 类选择器 */
+        .container {
+            /* 设置div的宽度 */
+            width: 800px;
+            /* 设置外边距达到居中对齐的目的 */
+            margin: 0px auto;
+            /* 设置外边距的上边距，保持元素和网页的上部距离 */
+            margin-top: 15px;
+        }
+        /* 复合选择器，选中container中的search */
+        .container .search {
+            /* 宽度与父标签一致 */
+            width: 100%;
+            /* 设置高度 */
+            height: 52px;
+        }
+        /* 先选中input标签，然后设置input的属性 */
+        .container .search input {
+            /* 设置float浮动 */
+            float: left;
+
+            width: 600px;
+            height: 50px;
+            /* 设置边框的属性：边框的宽度，样式，颜色 */
+            border: 1px solid black;
+            /* 去掉input输入框的有边框 */
+            border-right: none;
+            /* 设置内边距，默认文字不要和左侧边框紧挨着 */
+            padding-left: 10px;
+            /* 设置input内部字体的颜色和样式 */
+            color:dimgray ;
+            font-size: 15px;
+        }
+        /* 先选中button标签，然后设置button的属性 */
+        .container .search button {
+            /* 设置float浮动 */
+            float: left;
+
+            width: 150px;
+            height: 51px;
+            
+            /* 设置button的背景颜色 */
+            background-color: blue;
+            /* 设置button中字体的颜色 */
+            color: aliceblue;
+            /* 设置字体的大小 */
+            font-size: 15px;
+            /* 设置字体的样式 */
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+        }
+        .container .result {
+            width: 100%;
+        }
+        .container .result .item {
+            margin-top: 15px;
+        }
+        .container .result .item a {
+            /* 设置为块级元素，单独占一行 */
+            display: block;
+            /* 去掉标签中的下划线 */
+            text-decoration: none;
+            /* 设置标题的字体大小 */
+            font-size: 22px;
+            /* 设置标题字体颜色 */
+            color:darkblue ;
+        }
+        .container .result .item a:hover {
+            /* 设置鼠标在标题上的动态效果 */
+            text-decoration: underline; 
+            /* 鼠标点击字体时变色 */
+            color: brown;
+        }
+        .container .result .item p {
+            margin-top: 10px;
+            font-size: 18px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        .container .result .item i {
+            display: block;
+            /* 取消斜体风格 */
+            font-style: normal;
+            color: green;
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <div class="search">
+            <input type="text" value="输入关键字...">
+            <button onclick="Search()">搜索一下</button>
+        </div>
+        <div class="result">
+        </div>
+    </div>
+    <script>
+        
+        function Search(){
+            //这是浏览器的一个弹出框
+            //alert("hello js");
+            //1. 提取数据，$可以理解为JQuery的别称
+            let query = $(".container .search input").val();
+            console.log("query = " + query); //console是浏览器的对话框，可以查看js数据
+
+            //2. 发送http请求，
+            $.ajax({
+                type:"Get",
+                url:"/s?word=" + query,
+                success: function(data){
+                    console.log(data);
+                    BuildHtml(data);
+                }
+            });
+        }
+
+        function BuildHtml(data){
+            //获取html中的result标签
+            let result_lable = $(".container .result");
+            //清空历史记录
+            result_lable.empty();
+
+            for (let elem of data){
+                let a_lable =$("<a>",{
+                    // 获取标题
+                    text: elem.title, 
+                    //链接标题
+                    href: elem.url,
+                    //跳转到新的页面
+                    target: "_blank"
+                });
+                let p_lable = $("<p>",{
+                    text: elem.desc
+                });
+                let i_lable = $("<i>",{
+                    text: elem.url
+                });
+                let div_lable = $("<div>",{
+                    class: "item"
+                });
+                a_lable.appendTo(div_lable);
+                p_lable.appendTo(div_lable);
+                i_lable.appendTo(div_lable);
+                div_lable.appendTo(result_lable);
+            }
+        }
+    </script>
+</body>
+</html>
+```
+
+## 10. 简易日志
+
+```cpp
+#pragma once
+
+#include<iostream>
+#include<string>
+#include<ctime>
+
+#define NOAMAL 1
+#define WARNING 2
+#define DEBUG 3
+#define FATAL 4
+
+//#LEVEL：打印宏，__FILE__和__LINE__获取文件和行数
+#define LOG(LEVEL, MESSAGE) log(#LEVEL, MESSAGE, __FILE__, __LINE__)
+
+void log (std::string level, std::string message, std::string file, int line)
+{
+    time_t t = time(nullptr);
+    struct tm* tm = localtime(&t);
+    std::cout << "[" << level << "]";
+    printf("[%d-%d-%d %d:%d:%d]", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,tm->tm_hour, tm->tm_min, tm->tm_sec); 
+    std::cout << "[" << message << "]" << "[" << file << " : " << line << "]" << std::endl;
+}
+```
+
+
+
+## 11. 部署到`Linux`上
+
+```cpp
+[lzh@hcss-ecs-1552 boost_searcher]$ nohup ./http_server > log/log.txt 2>&1 &
+[1] 28006
+```
+
+当我们退出xshell时，搜索服务器依然可以使用
+
+```cpp
+//使用kill指令删除该服务
+[lzh@hcss-ecs-1552 ~]$ ps ajx | 
+> grep ./http_server
+    1 28006 28006 11226 ?           -1 Sl    1000   0:30 ./http_server
+28366 28434 28433 28366 pts/0    28433 S+    1000   0:00 grep --color=auto ./http_server
+[lzh@hcss-ecs-1552 ~]$ kill -9 28006
+
+```
+
